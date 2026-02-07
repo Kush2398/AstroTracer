@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro Tracer | Celestial Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Syncopate:wght@400;700&family=Quicksand:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cosmic-purple: #bc66ff;
+            --deep-space: #010103;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(188, 102, 255, 0.25);
+            --text-muted: rgba(255, 255, 255, 0.5);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--cosmic-purple) transparent;
+            selection-background-color: var(--cosmic-purple);
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--deep-space);
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(188, 102, 255, 0.07) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, rgba(100, 100, 255, 0.07) 0%, transparent 50%);
+            color: #f0f0f5;
+            font-family: 'Quicksand', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        #star-canvas, .card-stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .card-stars {
+            position: absolute;
+            z-index: 0;
+            border-radius: 40px;
+        }
+
+        .michroma { font-family: 'Michroma', sans-serif; }
+        .syncopate { font-family: 'Syncopate', sans-serif; }
+
+        /* Infinity Loader */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--deep-space);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loader-svg { width: 100px; }
+        .path-bg { fill: none; stroke: rgba(188, 102, 255, 0.1); stroke-width: 1; }
+        .path-active {
+            fill: none;
+            stroke: var(--cosmic-purple);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-dasharray: 60, 140;
+            filter: drop-shadow(0 0 12px var(--cosmic-purple));
+            animation: dashMove 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        }
+        @keyframes dashMove { 0% { stroke-dashoffset: 200; } 100% { stroke-dashoffset: 0; } }
+
+        /* Entry UI */
+        #entry-ui {
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card {
+            background: linear-gradient(135deg, rgba(20, 20, 30, 0.7), rgba(5, 5, 10, 0.9));
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.9);
+            border-radius: 32px;
+            padding: 40px 32px;
+            max-width: 380px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .input-glow {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            color: white;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        .input-glow:focus {
+            background: rgba(188, 102, 255, 0.08);
+            border-color: var(--cosmic-purple);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-2px);
+            outline: none;
+        }
+
+        .cta-button {
+            background: linear-gradient(90deg, #7c3aed, #a855f7, #7c3aed);
+            background-size: 200% auto;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-button:hover {
+            background-position: right center;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(168, 85, 247, 0.35);
+        }
+
+        /* Result Dossier Overlay */
+        #result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(1, 1, 2, 0.95);
+            z-index: 500;
+            display: none;
+            overflow-y: auto;
+            padding: 40px 20px;
+            transition: opacity 0.6s ease;
+        }
+
+        .dossier-card {
+            background: linear-gradient(180deg, rgba(30, 30, 45, 0.8) 0%, rgba(5, 5, 10, 0.98) 100%);
+            backdrop-filter: blur(60px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 40px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 60px 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+            animation: dossierEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dossier-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes dossierEnter {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sign-title {
+            font-family: 'Michroma', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            font-size: clamp(2rem, 8vw, 4rem);
+            background: linear-gradient(to bottom, #ffffff 40%, var(--cosmic-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 40px 0;
+        }
+
+        .info-cell {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .detail-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-label {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4em;
+            color: var(--cosmic-purple);
+            margin-bottom: 12px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .detail-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 35px;
+            text-align: justify;
+        }
+
+        .close-btn {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: -40px;
+            z-index: 10;
+        }
+
+        .close-btn:hover {
+            background: var(--cosmic-purple);
+            border-color: var(--cosmic-purple);
+        }
+
+        @media (max-width: 640px) {
+            .info-grid { grid-template-columns: 1fr; }
+            .dossier-card { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="star-canvas"></canvas>
+
+    <!-- Infinity Loader -->
+    <div id="loader-overlay">
+        <svg class="loader-svg" viewBox="0 0 100 50">
+            <path class="path-bg" d="M25,25 C25,10 45,10 50,25 C55,40 75,40 75,25 C75,10 55,10 50,25 C45,40 25,40 25,25 Z" />
+            <path class="path-active" d="M25,25 C25,10 45,10 50,25 C55,40 75,40 75,25 C75,10 55,10 50,25 C45,40 25,40 25,25 Z" />
+        </svg>
+        <p class="syncopate text-[9px] text-purple-400 mt-10 tracking-[1.8em] font-bold opacity-50">RETRIEVING ARCHIVE</p>
+    </div>
+
+    <!-- Entry UI -->
+    <div id="entry-ui" class="relative z-[100] flex items-center justify-center min-h-screen p-6">
+        <div class="glass-card w-full text-center">
+            <canvas class="card-stars" id="entry-stars"></canvas>
+            <div class="relative z-10">
+                <header class="mb-10">
+                    <span class="text-purple-400/80 font-bold tracking-[0.8em] text-[8px] mb-3 uppercase block">Celestial Entry Point</span>
+                    <h1 class="michroma text-xl text-white tracking-[0.25em] mb-1">ASTRAL<br><span class="opacity-30">ARCHIVE</span></h1>
+                </header>
+
+                <div class="grid grid-cols-2 gap-4 mb-10">
+                    <div class="text-left">
+                        <label class="syncopate text-[7px] font-bold tracking-[0.4em] text-white/40 mb-2 block uppercase ml-1">Stellar Day</label>
+                        <input type="number" id="day" placeholder="DD" min="1" max="31" class="input-glow w-full p-5 rounded-2xl text-white text-center text-2xl">
+                    </div>
+                    <div class="text-left">
+                        <label class="syncopate text-[7px] font-bold tracking-[0.4em] text-white/40 mb-2 block uppercase ml-1">Lunar Month</label>
+                        <input type="number" id="month" placeholder="MM" min="1" max="12" class="input-glow w-full p-5 rounded-2xl text-white text-center text-2xl">
+                    </div>
+                </div>
+
+                <button onclick="initSequence()" class="cta-button w-full py-5 rounded-full text-white tracking-[0.8em] text-[10px] shadow-lg">
+                    View Dossier
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Dossier -->
+    <div id="result-overlay">
+        <div class="dossier-card">
+            <canvas class="card-stars" id="result-stars"></canvas>
+            <div class="dossier-content">
+                <button onclick="relocateToStart()" class="close-btn syncopate">EXIT</button>
+                
+                <header class="text-center pt-8">
+                    <span class="text-purple-400 font-bold tracking-[1.8em] text-[9px] uppercase mb-4 block opacity-70">Zodiac Identification</span>
+                    <h2 id="sign-name" class="sign-title">ZODIAC</h2>
+                    <p id="sign-dates" class="text-white/40 font-bold tracking-[0.6em] uppercase text-[11px] mt-4">---</p>
+                </header>
+
+                <div class="info-grid">
+                    <div class="info-cell">
+                        <span class="detail-label !mb-1 !text-[8px]">Element</span>
+                        <p id="sign-element" class="text-white font-bold">---</p>
+                    </div>
+                    <div class="info-cell">
+                        <span class="detail-label !mb-1 !text-[8px]">Ruling Body</span>
+                        <p id="sign-planet" class="text-white font-bold">---</p>
+                    </div>
+                    <div class="info-cell">
+                        <span class="detail-label !mb-1 !text-[8px]">Vessel</span>
+                        <p id="sign-vibe" class="text-white font-bold">---</p>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <span class="detail-label">Historical Mythology</span>
+                    <p id="sign-history" class="detail-text"></p>
+
+                    <span class="detail-label">Ancient Recognition</span>
+                    <p id="sign-astronomy" class="detail-text"></p>
+                    
+                    <span class="detail-label">Origin & Root System</span>
+                    <p id="sign-origin" class="detail-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const zodiacData = [
+            { 
+                name: "Aries", 
+                dates: "Mar 21 — Apr 19", 
+                element: "Fire", 
+                planet: "Mars", 
+                vibe: "The Ram", 
+                origin: "Ancient Greek Civilization",
+                history: "Aries represents the legendary Golden Ram, a divine creature sent by the god Hermes to rescue the children Phrixus and Helle from the plots of their stepmother. During the flight, Helle fell into the sea (the Hellespont), but Phrixus survived and sacrificed the ram in honor of Zeus. The ram’s Golden Fleece became one of the most significant artifacts in Greek mythology, later serving as the central objective for Jason and his crew of Argonauts. Its placement in the stars signifies divine intervention and heroic protection.", 
+                astronomy: "In the ancient Mesopotamian MUL.APIN catalogs, Aries was known as 'The Farm Worker' (MUL.LÚ.HUR.GA), typically associated with the agricultural cycle. It was only after the Babylonian transmission to Greece that the constellation took on its character as the Ram, marking the start of the ancient solar year." 
+            },
+            { 
+                name: "Taurus", 
+                dates: "Apr 20 — May 20", 
+                element: "Earth", 
+                planet: "Venus", 
+                vibe: "The Bull", 
+                origin: "Sumero-Babylonian & Greek",
+                history: "In Greek lore, Taurus commemorates the form Zeus assumed to win the heart of Europa. Disguised as a gentle, white bull, he carried her across the Mediterranean to Crete. Conversely, in the Epic of Gilgamesh, it is the 'Bull of Heaven' sent by the goddess Ishtar to punish the hero. The bull represents raw strength, fertility, and the grounding energy of the earth.", 
+                astronomy: "As one of the oldest recognized constellations, Taurus has been tracked for over 4,000 years. During the Early Bronze Age, it marked the vernal equinox—the moment the sun crossed the celestial equator. The constellation contains the 'Seven Sisters' (Pleiades) and the 'Follower' (Aldebaran), a star used as a navigational beacon since antiquity." 
+            },
+            { 
+                name: "Gemini", 
+                dates: "May 21 — Jun 20", 
+                element: "Air", 
+                planet: "Mercury", 
+                vibe: "The Twins", 
+                origin: "Greek Heroic Mythos",
+                history: "Gemini represents the Dioscuri—Castor and Pollux. Though brothers, Pollux was the son of Zeus and immortal, while Castor was mortal. They were inseparable companions, legendary for their skills in horsemanship and combat. When Castor fell in battle, Pollux surrendered half of his immortality so they could spend eternity together, spending alternating days in Hades and on Olympus. They remain in the sky as a symbol of brotherly devotion and duality.", 
+                astronomy: "Known to Babylonian astronomers as the 'Great Twins' (MUL.MAŠ.TAB.BA.GAL.GAL). The constellation is anchored by its namesake stars, Castor and Pollux, which have served as essential markers for sailors navigating the night seas for millennia." 
+            },
+            { 
+                name: "Cancer", 
+                dates: "Jun 21 — Jul 22", 
+                element: "Water", 
+                planet: "Moon", 
+                vibe: "The Crab", 
+                origin: "Hellenic Mythology",
+                history: "The story of Cancer is one of loyalty and sacrifice. During Hercules' battle with the multi-headed Hydra, the goddess Hera—who despised Hercules—sent a giant crab to distract him. Despite being outmatched, the crab relentlessly pinched Hercules' foot to aid the Hydra. Although Hercules eventually crushed the creature, Hera honored its bravery by placing its image among the stars, creating one of the faint but storied constellations of the zodiac.", 
+                astronomy: "Historically, the sun reached its northernmost declination when it was in the constellation of Cancer, creating the Summer Solstice. This led to the naming of the 'Tropic of Cancer,' even though precession has since shifted that solar position into Taurus." 
+            },
+            { 
+                name: "Leo", 
+                dates: "Jul 23 — Aug 22", 
+                element: "Fire", 
+                planet: "Sun", 
+                vibe: "The Lion", 
+                origin: "Ancient Mesopotamian & Greek",
+                history: "Leo is most famously identified as the Nemean Lion, a beast with magical, impenetrable fur that terrorized the hills of Nemea. Defeating the lion was the first of Hercules' Twelve Labors. Unable to pierce its hide with weapons, Hercules used his bare strength to throttle the beast. He later wore the lion's skin as armor, and Zeus placed the lion in the sky to recognize the ferocity of the encounter and the strength required to overcome it.", 
+                astronomy: "Leo is one of the most distinctive constellations, with its bright star Regulus ('The Little King') marking the heart. Ancient Egyptians often linked Leo to the flooding of the Nile, as the sun entered the constellation during the river's annual rise." 
+            },
+            { 
+                name: "Virgo", 
+                dates: "Aug 23 — Sep 22", 
+                element: "Earth", 
+                planet: "Mercury", 
+                vibe: "The Maiden", 
+                origin: "Greek & Roman Transition",
+                history: "Virgo is primarily associated with Astraea, the goddess of purity and justice. Legend says she lived among mortals during the Golden Age. However, as humanity grew increasingly wicked through the Silver and Bronze ages, Astraea was the last of the immortals to abandon the Earth. She fled into the heavens to watch over the world from a distance. She is often depicted holding the Scales of Justice (Libra) and a bundle of wheat, representing both judgment and harvest.", 
+                astronomy: "As the second-largest constellation in the sky, Virgo dominates the spring evening. Its brightest star, Spica, symbolizes the ear of corn or grain held by the maiden, reflecting the constellation's deep historical ties to the harvest season." 
+            },
+            { 
+                name: "Libra", 
+                dates: "Sep 23 — Oct 22", 
+                element: "Air", 
+                planet: "Venus", 
+                vibe: "The Scales", 
+                origin: "Late Roman Standardization",
+                history: "Libra represents the Scales of Justice. It is unique as the only zodiac sign represented by an object. In earlier Greek times, this area of the sky was considered part of Scorpio (the scorpion's claws). The Romans later formalized it into the Scales to reflect the balance of the equinox, when day and night were equal in length. It is spiritually linked to the goddess Astraea (Virgo), representing the weight of actions and the necessity of cosmic balance.", 
+                astronomy: "Libra was historically the point of the autumnal equinox. Though precession has shifted this point into Virgo, the symbol remains a permanent fixture of celestial balance. The stars Zubeneschamali and Zubenelgenubi still carry names that translate from Arabic as the 'Northern' and 'Southern' Claws." 
+            },
+            { 
+                name: "Scorpio", 
+                dates: "Oct 23 — Nov 21", 
+                element: "Water", 
+                planet: "Mars/Pluto", 
+                vibe: "The Scorpion", 
+                origin: "Babylonian & Greek",
+                history: "The scorpion was sent by the Earth Mother Gaia to humble the hunter Orion after he boasted that he could kill every animal on Earth. The scorpion succeeded in stinging Orion, and both were placed in the sky as a reminder of the consequences of pride. Zeus separated them so that when Scorpio rises in the east, Orion sets in the west, ensuring the hunter and the beast never occupy the same sky at once.", 
+                astronomy: "Scorpio is easily identified by its curved 'stinger' tail and the massive red supergiant star Antares. The name Antares literally means 'Rival of Mars' (Anti-Aries), so called because its intense red hue frequently confused ancient observers with the planet Mars." 
+            },
+            { 
+                name: "Sagittarius", 
+                dates: "Nov 22 — Dec 21", 
+                element: "Fire", 
+                planet: "Jupiter", 
+                vibe: "The Archer", 
+                origin: "Greek Centaur Lore",
+                history: "Sagittarius is usually identified as Chiron, the wisest and most compassionate of all centaurs. Unlike his wild kin, Chiron was a master of the arts, medicine, and warfare, serving as a teacher to legends like Achilles, Jason, and Asclepius. He was accidentally wounded by a poisoned arrow of Hercules and gave up his immortality to end his suffering, prompting Zeus to place him in the stars. He is depicted aiming his bow toward the heart of Scorpio to keep the scorpion in check.", 
+                astronomy: "The constellation lies toward the center of the Milky Way. Its most recognizable shape is the 'Teapot' asterism. In the summer months, the 'steam' rising from the teapot's spout is actually the dense star-cloud of the galactic center." 
+            },
+            { 
+                name: "Capricorn", 
+                dates: "Dec 22 — Jan 19", 
+                element: "Earth", 
+                planet: "Saturn", 
+                vibe: "Sea-Goat", 
+                origin: "Sumero-Babylonian Antiquity",
+                history: "One of the most ancient figures, Capricorn represents Ea (or Enki), the Mesopotamian god of water and deep wisdom. He was portrayed as a creature with the head of a goat and the tail of a fish, symbolizing the duality of height (mountains) and depth (oceans). In Greek myth, it is sometimes linked to Pan, who grew a fish tail to escape the monster Typhon in the Nile. It represents the climb of the spirit from the deep waters of intuition to the peaks of material achievement.", 
+                astronomy: "Recorded over 3,000 years ago as the 'Goat-Fish' (MUL.SUHUR.MAŠ). It is one of the faintest constellations, yet its proximity to the 'Sea' region of the sky—surrounded by Aquarius and Pisces—reinforced its aquatic mythology." 
+            },
+            { 
+                name: "Aquarius", 
+                dates: "Jan 20 — Feb 18", 
+                element: "Air", 
+                planet: "Uranus", 
+                vibe: "Water Bearer", 
+                origin: "Greek and Ancient Near East",
+                history: "Aquarius is most commonly associated with Ganymede, a youth of such beauty that Zeus, transformed into an eagle, swept him up to Mount Olympus. There, he was granted eternal youth and served as the cupbearer to the gods, pouring nectar from a golden vessel. In more ancient times, the Water Bearer was linked to the god Enki, who poured the waters of life (the Tigris and Euphrates) into the world. It is a symbol of the distribution of knowledge and the life-giving properties of air and water.", 
+                astronomy: "The sun enters this region during the rainy months of late winter. It contains the Helix Nebula, often called the 'Eye of God,' which is one of the closest planetary nebulae to Earth." 
+            },
+            { 
+                name: "Pisces", 
+                dates: "Feb 19 — Mar 20", 
+                element: "Water", 
+                planet: "Neptune", 
+                vibe: "The Fish", 
+                origin: "Syrian and Greek Origins",
+                history: "Pisces represents Aphrodite and her son Eros. When the terrifying monster Typhon attacked the gods on Olympus, the two fled to the banks of the Euphrates River. They transformed into fish to hide in the depths, tying themselves together with a silver cord so they would not be separated in the current. This cord remains visible in the sky as the stars that link the two fish together at the constellation's vertex. It symbolizes the unbreakable bonds of love and the instinct for survival through transformation.", 
+                astronomy: "Pisces marks the point of the Vernal Equinox in the current celestial era. Because of its V-shape, the Babylonians referred to it as 'The Tails,' representing the end of the year before the cycle renewed with Aries." 
+            }
+        ];
+
+        function getDaysInMonth(m) {
+            // For zodiac identification, we use a reference leap year (2024) 
+            // to ensure Feb 29 is always selectable.
+            return new Date(2024, m, 0).getDate();
+        }
+
+        function getZodiac(day, month) {
+            if (isNaN(day) || isNaN(month)) return null;
+            if (month < 1 || month > 12) return null;
+            
+            const maxDays = getDaysInMonth(month);
+            if (day < 1 || day > maxDays) return null;
+
+            // Simplified and robust matching logic using a single comparison value
+            const mmdd = month * 100 + day;
+
+            if ((mmdd >= 321 && mmdd <= 419)) return zodiacData.find(z => z.name === "Aries");
+            if ((mmdd >= 420 && mmdd <= 520)) return zodiacData.find(z => z.name === "Taurus");
+            if ((mmdd >= 521 && mmdd <= 620)) return zodiacData.find(z => z.name === "Gemini");
+            if ((mmdd >= 621 && mmdd <= 722)) return zodiacData.find(z => z.name === "Cancer");
+            if ((mmdd >= 723 && mmdd <= 822)) return zodiacData.find(z => z.name === "Leo");
+            if ((mmdd >= 823 && mmdd <= 922)) return zodiacData.find(z => z.name === "Virgo");
+            if ((mmdd >= 923 && mmdd <= 1022)) return zodiacData.find(z => z.name === "Libra");
+            if ((mmdd >= 1023 && mmdd <= 1121)) return zodiacData.find(z => z.name === "Scorpio");
+            if ((mmdd >= 1122 && mmdd <= 1221)) return zodiacData.find(z => z.name === "Sagittarius");
+            if ((mmdd >= 1222 || mmdd <= 119)) return zodiacData.find(z => z.name === "Capricorn");
+            if ((mmdd >= 120 && mmdd <= 218)) return zodiacData.find(z => z.name === "Aquarius");
+            if ((mmdd >= 219 && mmdd <= 320)) return zodiacData.find(z => z.name === "Pisces");
+            
+            return null;
+        }
+
+        async function initSequence() {
+            const dInput = document.getElementById('day');
+            const mInput = document.getElementById('month');
+            const d = parseInt(dInput.value);
+            const m = parseInt(mInput.value);
+            const sign = getZodiac(d, m);
+
+            if (!sign) {
+                [dInput, mInput].forEach(i => i.classList.add('border-red-500/50'));
+                setTimeout(() => [dInput, mInput].forEach(i => i.classList.remove('border-red-500/50')), 1000);
+                return;
+            }
+
+            document.getElementById('entry-ui').style.opacity = '0';
+            await new Promise(r => setTimeout(r, 400));
+            document.getElementById('entry-ui').style.display = 'none';
+            document.getElementById('loader-overlay').style.display = 'flex';
+            
+            await new Promise(r => setTimeout(r, 1800));
+            
+            document.getElementById('loader-overlay').style.display = 'none';
+            showResult(sign);
+        }
+
+        function showResult(sign) {
+            document.getElementById('sign-name').innerText = sign.name.toUpperCase();
+            document.getElementById('sign-dates').innerText = sign.dates;
+            document.getElementById('sign-element').innerText = sign.element;
+            document.getElementById('sign-planet').innerText = sign.planet;
+            document.getElementById('sign-vibe').innerText = sign.vibe;
+            document.getElementById('sign-origin').innerText = sign.origin;
+            document.getElementById('sign-history').innerText = sign.history;
+            document.getElementById('sign-astronomy').innerText = sign.astronomy;
+
+            const overlay = document.getElementById('result-overlay');
+            overlay.style.display = 'block';
+            setTimeout(() => overlay.style.opacity = '1', 50);
+            overlay.scrollTo({ top: 0, behavior: 'auto' });
+        }
+
+        function relocateToStart() {
+            document.getElementById('result-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('result-overlay').style.display = 'none';
+                document.getElementById('entry-ui').style.display = 'flex';
+                setTimeout(() => document.getElementById('entry-ui').style.opacity = '1', 50);
+                document.getElementById('day').value = '';
+                document.getElementById('month').value = '';
+            }, 600);
+        }
+
+        class StarField {
+            constructor(canvasId, count = 150) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.count = count;
+                this.stars = [];
+                this.init();
+                this.animate();
+            }
+
+            init() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.stars = Array.from({ length: this.count }, () => ({
+                    x: Math.random() * this.canvas.width,
+                    y: Math.random() * this.canvas.height,
+                    z: Math.random(),
+                    o: Math.random() * Math.PI * 2,
+                    s: 0.02 + Math.random() * 0.05
+                }));
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.stars.forEach(s => {
+                    s.o += s.s;
+                    const opacity = 0.1 + (Math.sin(s.o) + 1) * 0.25;
+                    this.ctx.fillStyle = `rgba(188, 102, 255, ${opacity})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(s.x, s.y, s.z * 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.stars.forEach(s => {
+                    s.x = Math.random() * this.canvas.width;
+                    s.y = Math.random() * this.canvas.height;
+                });
+            }
+        }
+
+        const bgCanvas = document.getElementById('star-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let bgStars = [];
+        let fields = [];
+
+        function resizeMain() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            bgStars = Array.from({ length: 400 }, () => ({
+                x: Math.random() * bgCanvas.width,
+                y: Math.random() * bgCanvas.height,
+                z: Math.random(),
+                o: Math.random() * Math.PI * 2
+            }));
+            fields.forEach(f => f.resize());
+        }
+
+        function drawMain() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgStars.forEach(s => {
+                s.o += 0.02;
+                const opacity = 0.05 + (Math.sin(s.o) + 1) * 0.15;
+                bgCtx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                bgCtx.beginPath();
+                bgCtx.arc(s.x, s.y, s.z * 1.2, 0, Math.PI * 2);
+                bgCtx.fill();
+            });
+            requestAnimationFrame(drawMain);
+        }
+
+        window.onload = () => { 
+            resizeMain(); 
+            drawMain();
+            fields.push(new StarField('entry-stars', 80));
+            fields.push(new StarField('result-stars', 120));
+        };
+        
+        window.onresize = () => {
+            resizeMain();
+        };
+
+        // Logic sanitation for inputs
+        document.getElementById('day').addEventListener('input', function() {
+            if (this.value > 31) this.value = 31;
+            if (this.value < 1 && this.value !== "") this.value = 1;
+        });
+        document.getElementById('month').addEventListener('input', function() {
+            if (this.value > 12) this.value = 12;
+            if (this.value < 1 && this.value !== "") this.value = 1;
+        });
+    </script>
+</body>
+</html>
