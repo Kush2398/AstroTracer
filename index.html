@@ -74,7 +74,7 @@
         input[type="date"], input[type="time"], select {
             color-scheme: dark;
             font-size: 16px !important;
-            z-index: 20; /* Ensure dropdown is above most elements */
+            z-index: 20; 
             position: relative;
         }
 
@@ -85,7 +85,7 @@
                 bottom: 20px;
                 left: 20px;
                 right: 20px;
-                z-index: 100; /* High z-index */
+                z-index: 100;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
                 transition: transform 0.3s ease, opacity 0.3s ease;
             }
@@ -95,7 +95,7 @@
                 pointer-events: none;
             }
             .form-container {
-                padding-bottom: 60px; /* Spacing for the timezone dropdown */
+                padding-bottom: 20px;
             }
             .content-padding {
                 padding-bottom: 120px;
@@ -130,7 +130,6 @@
             animation: fadeIn 0.5s ease forwards;
         }
 
-        /* Toggle Switch Styling */
         .toggle-switch {
             position: relative;
             display: inline-block;
@@ -221,14 +220,15 @@
                                 <option value="1">Europe (GMT +1)</option>
                             </select>
                         </div>
-
-                        <div id="sticky-btn-wrapper" class="mobile-sticky-btn">
-                            <button type="submit" id="calc-btn" class="w-full btn-primary py-4 sm:py-5 rounded-2xl font-bold text-white uppercase tracking-widest text-sm shadow-xl">
-                                <span>Calculate Rashi</span>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            </button>
-                        </div>
                     </form>
+
+                    <!-- Sticky Button Moved Outside Form to prevent layout overlap -->
+                    <div id="sticky-btn-wrapper" class="mobile-sticky-btn md:mt-8">
+                        <button type="submit" form="calc-form" id="calc-btn" class="w-full btn-primary py-4 sm:py-5 rounded-2xl font-bold text-white uppercase tracking-widest text-sm shadow-xl">
+                            <span>Calculate Rashi</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -296,7 +296,6 @@
     </div>
 
     <script>
-        // Updated Rashi Data with proper Hindi-English names
         const RASHIS = [
             { id: 0, hindi_en: "Mesh", en: "Aries", symbol: "♈", sk: "मेष", element: "Fire", ruler: "Mars" },
             { id: 1, hindi_en: "Vrishabh", en: "Taurus", symbol: "♉", sk: "वृषभ", element: "Earth", ruler: "Venus" },
@@ -312,7 +311,6 @@
             { id: 11, hindi_en: "Meen", en: "Pisces", symbol: "♓", sk: "मीन", element: "Water", ruler: "Jupiter" }
         ];
 
-        // Mobile Sticky Button logic: hide when inputs focused
         const stickyBtn = document.getElementById('sticky-btn-wrapper');
         const inputs = document.querySelectorAll('.input-field');
 
@@ -321,14 +319,12 @@
                 if (window.innerWidth < 768) stickyBtn.classList.add('btn-hidden');
             });
             el.addEventListener('blur', () => {
-                // Short timeout to allow click events to register
                 setTimeout(() => {
                     stickyBtn.classList.remove('btn-hidden');
                 }, 150);
             });
         });
 
-        // Background stars logic
         const canvas = document.getElementById('star-canvas');
         const ctx = canvas.getContext('2d');
         let stars = [];
@@ -364,7 +360,6 @@
             requestAnimationFrame(animateStars);
         }
 
-        // Calculation logic
         function getLagna(dateObj) {
             const start = new Date(dateObj.getFullYear(), 0, 0);
             const diff = dateObj - start;
@@ -426,7 +421,6 @@
             document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('results-area').classList.remove('hidden');
 
-            // Result Display Format: Singh (Leo) सिंह
             document.getElementById('active-rashi-symbol').innerText = active.symbol;
             document.getElementById('hero-symbol-bg').innerText = active.symbol;
             document.getElementById('active-rashi-display').innerHTML = 
@@ -440,7 +434,6 @@
             document.getElementById('rashi-element-hero').innerText = active.element;
             document.getElementById('rashi-ruler-hero').innerText = active.ruler;
 
-            // Timeline Injection
             const timeline = document.getElementById('timeline-scroll');
             timeline.innerHTML = '';
 
