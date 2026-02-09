@@ -18,7 +18,7 @@
         }
 
         body {
-            font-family: 'Space+Grotesk', sans-serif;
+            font-family: 'Space Grotesk', sans-serif;
             background-color: var(--bg-deep);
             color: #f8fafc;
             overflow-x: hidden;
@@ -58,7 +58,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Responsive Scrollbar for Timeline */
         .timeline-container::-webkit-scrollbar {
             height: 4px;
         }
@@ -74,21 +73,32 @@
 
         input[type="date"], input[type="time"], select {
             color-scheme: dark;
-            font-size: 16px !important; /* Prevents iOS zoom on focus */
+            font-size: 16px !important;
+            z-index: 20; /* Ensure dropdown is above most elements */
+            position: relative;
         }
 
-        /* Sticky Button for Mobile */
+        /* Fixed Sticky Button for Mobile with focus logic */
         @media (max-width: 768px) {
             .mobile-sticky-btn {
                 position: fixed;
                 bottom: 20px;
                 left: 20px;
                 right: 20px;
-                z-index: 50;
+                z-index: 100; /* High z-index */
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                transition: transform 0.3s ease, opacity 0.3s ease;
+            }
+            .mobile-sticky-btn.btn-hidden {
+                transform: translateY(120%);
+                opacity: 0;
+                pointer-events: none;
+            }
+            .form-container {
+                padding-bottom: 60px; /* Spacing for the timezone dropdown */
             }
             .content-padding {
-                padding-bottom: 100px;
+                padding-bottom: 120px;
             }
         }
 
@@ -158,7 +168,6 @@
     <canvas id="star-canvas"></canvas>
 
     <div class="max-w-7xl mx-auto">
-        <!-- Header: Dynamic sizing -->
         <header class="text-center mb-8 md:mb-16">
             <h1 class="text-3xl sm:text-5xl lg:text-7xl font-extrabold mb-3 md:mb-6 rashi-gradient-text italic tracking-tight">
                 Indian Rashi Time Finder
@@ -171,7 +180,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
             <!-- Left Column: Inputs -->
             <section class="lg:col-span-4 xl:col-span-4 space-y-6">
-                <div class="glass-panel p-5 sm:p-8 rounded-[2rem]">
+                <div class="glass-panel p-5 sm:p-8 rounded-[2rem] form-container">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-lg sm:text-xl font-semibold flex items-center">
                             <svg class="w-5 h-5 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -191,20 +200,20 @@
                             <div>
                                 <label class="block text-xs uppercase tracking-widest text-slate-500 mb-2 ml-1">Date</label>
                                 <input type="date" id="input-date" required
-                                    class="w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                                    class="input-field w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                             </div>
 
                             <div>
                                 <label class="block text-xs uppercase tracking-widest text-slate-500 mb-2 ml-1">Time</label>
                                 <input type="time" id="input-time" required
-                                    class="w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                                    class="input-field w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-xs uppercase tracking-widest text-slate-500 mb-2 ml-1">Timezone (GMT Offset)</label>
                             <select id="input-tz" 
-                                class="w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none transition-all disabled:opacity-30">
+                                class="input-field w-full bg-slate-900/60 border border-slate-700/50 rounded-2xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none transition-all disabled:opacity-30">
                                 <option value="5.5">India (GMT +5:30)</option>
                                 <option value="0">UTC (GMT 0)</option>
                                 <option value="-5">USA East (GMT -5)</option>
@@ -213,7 +222,7 @@
                             </select>
                         </div>
 
-                        <div class="mobile-sticky-btn">
+                        <div id="sticky-btn-wrapper" class="mobile-sticky-btn">
                             <button type="submit" id="calc-btn" class="w-full btn-primary py-4 sm:py-5 rounded-2xl font-bold text-white uppercase tracking-widest text-sm shadow-xl">
                                 <span>Calculate Rashi</span>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
@@ -221,21 +230,12 @@
                         </div>
                     </form>
                 </div>
-
-                <div class="glass-panel p-6 rounded-[2rem] text-sm leading-relaxed text-slate-400 hidden sm:block">
-                    <h3 class="text-indigo-300 font-bold mb-3 uppercase text-xs tracking-widest">Astronomical Logic</h3>
-                    "Earth rotates through 12 Rashis every 24 hours according to Indian astronomical calculation."
-                    <p class="mt-2 italic">Lagna changes roughly every 2 hours, defining your immediate cosmic environment.</p>
-                </div>
             </section>
 
             <!-- Right Column: Results -->
             <section id="results-area" class="lg:col-span-8 xl:col-span-8 space-y-6 hidden animate-fade-in">
-                <!-- Result Hero: Adaptive padding and font sizes -->
                 <div class="glass-panel p-6 sm:p-10 lg:p-12 rounded-[2.5rem] active-rashi-glow relative overflow-hidden">
-                    <div id="hero-symbol-bg" class="absolute -top-4 -right-4 p-8 opacity-5 lg:opacity-10 pointer-events-none text-[150px] sm:text-[250px] font-serif">
-                        ♌
-                    </div>
+                    <div id="hero-symbol-bg" class="absolute -top-4 -right-4 p-8 opacity-5 lg:opacity-10 pointer-events-none text-[150px] sm:text-[250px] font-serif"></div>
                     
                     <div class="relative z-10">
                         <div class="flex items-center gap-3">
@@ -244,14 +244,11 @@
                         </div>
                         <div class="flex flex-col mt-4">
                             <div class="flex items-center gap-4">
-                                <span id="active-rashi-symbol" class="text-4xl sm:text-6xl text-purple-400 symbol-glow">♌</span>
-                                <h2 id="active-rashi-display" class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter">
-                                    Simha <span class="text-slate-500 font-light text-2xl sm:text-4xl lg:text-5xl">(Leo)</span>
-                                </h2>
+                                <span id="active-rashi-symbol" class="text-4xl sm:text-6xl text-purple-400 symbol-glow"></span>
+                                <h2 id="active-rashi-display" class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter"></h2>
                             </div>
-                            <span id="active-rashi-sanskrit" class="text-2xl sm:text-4xl text-slate-400 italic font-light mt-2">सिंह</span>
+                            <span id="active-rashi-sanskrit" class="text-2xl sm:text-4xl text-slate-400 italic font-light mt-2"></span>
                         </div>
-                        <p id="active-rashi-desc" class="text-slate-400 mt-6 text-base sm:text-lg max-w-xl leading-relaxed">Your calculated Ascendant based on the sidereal rotation of the Earth.</p>
                         
                         <div class="mt-10 pt-10 border-t border-slate-800/50 grid grid-cols-2 md:grid-cols-4 gap-6">
                             <div class="col-span-1">
@@ -274,27 +271,12 @@
                     </div>
                 </div>
 
-                <!-- 24 Hour Timeline: Swipeable on mobile, Grid on desktop -->
                 <div class="glass-panel p-6 sm:p-8 rounded-[2.5rem]">
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg sm:text-xl font-bold">24-Hour Cycle</h3>
                         <span class="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full">120m intervals</span>
                     </div>
-                    <div id="timeline-scroll" class="flex lg:grid lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 timeline-container">
-                        <!-- Timeline Items will be injected here -->
-                    </div>
-                </div>
-
-                <!-- Rashi Info Cards -->
-                <div class="grid grid-cols-2 md:hidden gap-4">
-                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-indigo-500">
-                        <h4 class="text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-1">Element</h4>
-                        <p id="rashi-element-mobile" class="text-lg font-semibold">---</p>
-                    </div>
-                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-purple-500">
-                        <h4 class="text-purple-400 font-bold text-[10px] uppercase tracking-widest mb-1">Planet</h4>
-                        <p id="rashi-ruler-mobile" class="text-lg font-semibold">---</p>
-                    </div>
+                    <div id="timeline-scroll" class="flex lg:grid lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 timeline-container"></div>
                 </div>
             </section>
 
@@ -314,23 +296,39 @@
     </div>
 
     <script>
-        // --- DATA ---
+        // Updated Rashi Data with proper Hindi-English names
         const RASHIS = [
-            { id: 0, name: 'Mesh', en: 'Aries', symbol: '♈', sk: 'मेष', element: 'Fire', ruler: 'Mars' },
-            { id: 1, name: 'Vrishabh', en: 'Taurus', symbol: '♉', sk: 'वृषभ', element: 'Earth', ruler: 'Venus' },
-            { id: 2, name: 'Mithun', en: 'Gemini', symbol: '♊', sk: 'मिथुन', element: 'Air', ruler: 'Mercury' },
-            { id: 3, name: 'Karka', en: 'Cancer', symbol: '♋', sk: 'कर्क', element: 'Water', ruler: 'Moon' },
-            { id: 4, name: 'Simha', en: 'Leo', symbol: '♌', sk: 'सिंह', element: 'Fire', ruler: 'Sun' },
-            { id: 5, name: 'Kanya', en: 'Virgo', symbol: '♍', sk: 'कन्या', element: 'Earth', ruler: 'Mercury' },
-            { id: 6, name: 'Tula', en: 'Libra', symbol: '♎', sk: 'तुला', element: 'Air', ruler: 'Venus' },
-            { id: 7, name: 'Vrishchik', en: 'Scorpio', symbol: '♏', sk: 'वृश्चिक', element: 'Water', ruler: 'Mars' },
-            { id: 8, name: 'Dhanu', en: 'Sagittarius', symbol: '♐', sk: 'धनु', element: 'Fire', ruler: 'Jupiter' },
-            { id: 9, name: 'Makar', en: 'Capricorn', symbol: '♑', sk: 'मकर', element: 'Earth', ruler: 'Saturn' },
-            { id: 10, name: 'Kumbha', en: 'Aquarius', symbol: '♒', sk: 'कुंभ', element: 'Air', ruler: 'Saturn' },
-            { id: 11, name: 'Meena', en: 'Pisces', symbol: '♓', sk: 'मीन', element: 'Water', ruler: 'Jupiter' }
+            { id: 0, hindi_en: "Mesh", en: "Aries", symbol: "♈", sk: "मेष", element: "Fire", ruler: "Mars" },
+            { id: 1, hindi_en: "Vrishabh", en: "Taurus", symbol: "♉", sk: "वृषभ", element: "Earth", ruler: "Venus" },
+            { id: 2, hindi_en: "Mithun", en: "Gemini", symbol: "♊", sk: "मिथुन", element: "Air", ruler: "Mercury" },
+            { id: 3, hindi_en: "Karka", en: "Cancer", symbol: "♋", sk: "कर्क", element: "Water", ruler: "Moon" },
+            { id: 4, hindi_en: "Singh", en: "Leo", symbol: "♌", sk: "सिंह", element: "Fire", ruler: "Sun" },
+            { id: 5, hindi_en: "Kanya", en: "Virgo", symbol: "♍", sk: "कन्या", element: "Earth", ruler: "Mercury" },
+            { id: 6, hindi_en: "Tula", en: "Libra", symbol: "♎", sk: "तुला", element: "Air", ruler: "Venus" },
+            { id: 7, hindi_en: "Vrishchik", en: "Scorpio", symbol: "♏", sk: "वृश्चिक", element: "Water", ruler: "Mars" },
+            { id: 8, hindi_en: "Dhanu", en: "Sagittarius", symbol: "♐", sk: "धनु", element: "Fire", ruler: "Jupiter" },
+            { id: 9, hindi_en: "Makar", en: "Capricorn", symbol: "♑", sk: "मकर", element: "Earth", ruler: "Saturn" },
+            { id: 10, hindi_en: "Kumbh", en: "Aquarius", symbol: "♒", sk: "कुंभ", element: "Air", ruler: "Saturn" },
+            { id: 11, hindi_en: "Meen", en: "Pisces", symbol: "♓", sk: "मीन", element: "Water", ruler: "Jupiter" }
         ];
 
-        // --- ADAPTIVE BACKGROUND STARS ---
+        // Mobile Sticky Button logic: hide when inputs focused
+        const stickyBtn = document.getElementById('sticky-btn-wrapper');
+        const inputs = document.querySelectorAll('.input-field');
+
+        inputs.forEach(el => {
+            el.addEventListener('focus', () => {
+                if (window.innerWidth < 768) stickyBtn.classList.add('btn-hidden');
+            });
+            el.addEventListener('blur', () => {
+                // Short timeout to allow click events to register
+                setTimeout(() => {
+                    stickyBtn.classList.remove('btn-hidden');
+                }, 150);
+            });
+        });
+
+        // Background stars logic
         const canvas = document.getElementById('star-canvas');
         const ctx = canvas.getContext('2d');
         let stars = [];
@@ -366,22 +364,17 @@
             requestAnimationFrame(animateStars);
         }
 
-        // --- CALCULATION LOGIC ---
-        function getLagna(dateObj, gmtOffset) {
+        // Calculation logic
+        function getLagna(dateObj) {
             const start = new Date(dateObj.getFullYear(), 0, 0);
             const diff = dateObj - start;
             const oneDay = 1000 * 60 * 60 * 24;
             const dayOfYear = Math.floor(diff / oneDay);
-
             const localMinutes = (dateObj.getHours() * 60) + dateObj.getMinutes();
             let dailyShift = (dayOfYear - 80) * 3.9426;
             let zodiacMinutes = (localMinutes + dailyShift) % 1440;
             if (zodiacMinutes < 0) zodiacMinutes += 1440;
-
-            let index = Math.floor(zodiacMinutes / 120) % 12;
-            let minsRemaining = 120 - (zodiacMinutes % 120);
-
-            return { index, minsRemaining };
+            return { index: Math.floor(zodiacMinutes / 120) % 12, minsRemaining: 120 - (zodiacMinutes % 120) };
         }
 
         function formatTime(date) {
@@ -391,18 +384,18 @@
         let liveInterval = null;
 
         function toggleLiveMode(isLive) {
-            const inputs = ['input-date', 'input-time', 'input-tz'];
+            const fieldIds = ['input-date', 'input-time', 'input-tz'];
             const btn = document.getElementById('calc-btn');
             const indicator = document.getElementById('live-indicator');
 
             if (isLive) {
-                inputs.forEach(id => document.getElementById(id).disabled = true);
+                fieldIds.forEach(id => document.getElementById(id).disabled = true);
                 btn.disabled = true;
                 indicator.classList.remove('hidden');
-                runCalculation(); // Initial run
-                liveInterval = setInterval(runCalculation, 60000); // Update every minute
+                runCalculation();
+                liveInterval = setInterval(runCalculation, 60000);
             } else {
-                inputs.forEach(id => document.getElementById(id).disabled = false);
+                fieldIds.forEach(id => document.getElementById(id).disabled = false);
                 btn.disabled = false;
                 indicator.classList.add('hidden');
                 if (liveInterval) clearInterval(liveInterval);
@@ -411,47 +404,41 @@
 
         function runCalculation(e) {
             if (e) e.preventDefault();
-
             const isLive = document.getElementById('live-mode-toggle').checked;
             let targetDate;
-            let tz;
 
             if (isLive) {
                 targetDate = new Date();
-                tz = -(targetDate.getTimezoneOffset() / 60);
-                // Sync inputs for visual consistency
                 document.getElementById('input-date').value = targetDate.toISOString().split('T')[0];
                 document.getElementById('input-time').value = targetDate.toTimeString().slice(0, 5);
             } else {
                 const dateStr = document.getElementById('input-date').value;
                 const timeStr = document.getElementById('input-time').value;
-                tz = parseFloat(document.getElementById('input-tz').value);
                 targetDate = new Date(`${dateStr}T${timeStr}`);
             }
 
             if (isNaN(targetDate)) return;
 
-            const { index, minsRemaining } = getLagna(targetDate, tz);
+            const { index, minsRemaining } = getLagna(targetDate);
             const active = RASHIS[index];
             const next = RASHIS[(index + 1) % 12];
 
             document.getElementById('empty-state').classList.add('hidden');
             document.getElementById('results-area').classList.remove('hidden');
 
-            // Hero Updates
+            // Result Display Format: Singh (Leo) सिंह
             document.getElementById('active-rashi-symbol').innerText = active.symbol;
             document.getElementById('hero-symbol-bg').innerText = active.symbol;
-            document.getElementById('active-rashi-display').innerHTML = `${active.name} <span class="text-slate-500 font-light text-2xl sm:text-4xl lg:text-5xl">(${active.en})</span>`;
+            document.getElementById('active-rashi-display').innerHTML = 
+                `${active.hindi_en} <span class="text-slate-500 font-light text-2xl sm:text-4xl lg:text-5xl">(${active.en})</span>`;
             document.getElementById('active-rashi-sanskrit').innerText = active.sk;
             
             const nextDate = new Date(targetDate.getTime() + minsRemaining * 60000);
             document.getElementById('next-change-time').innerText = formatTime(nextDate);
-            document.getElementById('next-rashi-name').innerText = next.name;
+            document.getElementById('next-rashi-name').innerText = next.hindi_en;
 
             document.getElementById('rashi-element-hero').innerText = active.element;
             document.getElementById('rashi-ruler-hero').innerText = active.ruler;
-            document.getElementById('rashi-element-mobile').innerText = active.element;
-            document.getElementById('rashi-ruler-mobile').innerText = active.ruler;
 
             // Timeline Injection
             const timeline = document.getElementById('timeline-scroll');
@@ -470,7 +457,7 @@
                         ${i === 0 ? 'ACTIVE NOW' : formatTime(startTime)}
                     </div>
                     <div class="text-2xl mb-1">${rData.symbol}</div>
-                    <div class="font-bold text-sm sm:text-lg text-slate-100">${rData.name}</div>
+                    <div class="font-bold text-sm sm:text-lg text-slate-100">${rData.hindi_en}</div>
                     <div class="text-[10px] sm:text-xs text-slate-400 italic">${rData.sk} (${rData.en})</div>
                 `;
                 timeline.appendChild(card);
@@ -481,19 +468,16 @@
             }
         }
 
-        // --- INIT ---
         window.addEventListener('resize', initStars);
-
         window.onload = () => {
             initStars();
             animateStars();
-
             const now = new Date();
             document.getElementById('input-date').value = now.toISOString().split('T')[0];
             document.getElementById('input-time').value = now.toTimeString().slice(0, 5);
-            
             document.getElementById('calc-form').addEventListener('submit', runCalculation);
             document.getElementById('live-mode-toggle').addEventListener('change', (e) => toggleLiveMode(e.target.checked));
+            runCalculation();
         };
     </script>
 </body>
